@@ -33,6 +33,7 @@ func run() error {
 
 	pflag.StringVar(&opt.GithubEndpoint, "github-endpoint", opt.GithubEndpoint, "An optional proxy for connecting to github.")
 	AddBugzillaFlags(&opt.Bugzilla)
+	klog.InitFlags(flag.CommandLine)
 	pflag.CommandLine.AddGoFlag(flag.Lookup("v"))
 
 	pflag.Parse()

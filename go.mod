@@ -24,7 +24,7 @@ require (
 	github.com/slack-go/slack v0.6.4 // indirect
 	github.com/spf13/cobra v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.6.3 // indirect
+	github.com/spf13/viper v1.6.3
 	k8s.io/klog v1.0.0
 )
 
