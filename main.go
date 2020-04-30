@@ -8,17 +8,14 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
-
 	"k8s.io/klog"
 )
 
 const Version = "0.0.1"
 
 type options struct {
-	ProwConfigPath string
-	JobConfigPath  string
 	GithubEndpoint string
-	ForcePROwner   string
+	Bugzilla       BugzillaOptions
 }
 
 func main() {
@@ -28,20 +25,30 @@ func main() {
 }
 
 func run() error {
+	klog.SetOutput(os.Stderr)
+
 	opt := &options{
 		GithubEndpoint: "https://api.github.com",
 	}
-	pflag.StringVar(&opt.GithubEndpoint, "github-endpoint", opt.GithubEndpoint, "An optional proxy for connecting to github.")
-	pflag.CommandLine.AddGoFlag(flag.Lookup("v"))
-	pflag.Parse()
-	klog.SetOutput(os.Stderr)
 
-	botToken := os.Getenv("BOT_TOKEN")
+	pflag.StringVar(&opt.GithubEndpoint, "github-endpoint", opt.GithubEndpoint, "An optional proxy for connecting to github.")
+	AddBugzillaFlags(&opt.Bugzilla)
+	pflag.CommandLine.AddGoFlag(flag.Lookup("v"))
+
+	pflag.Parse()
+
+	botToken := os.Getenv("SLACK_BOT_TOKEN")
 	if len(botToken) == 0 {
-		return fmt.Errorf("the environment variable BOT_TOKEN must be set")
+		return fmt.Errorf("the environment variable SLACK_BOT_TOKEN must be set")
 	}
 
-	bot := NewBot(botToken)
+	bz, err := NewBugzilla(opt.Bugzilla)
+	if err != nil {
+		return err
+	}
+	defer bz.Close()
+
+	bot := NewBot(botToken, bz)
 	for {
 		if err := bot.Start(); err != nil && !isRetriable(err) {
 			return err

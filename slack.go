@@ -12,11 +12,13 @@ import (
 
 type Bot struct {
 	token string
+	bz    *Bugzilla
 }
 
-func NewBot(token string) *Bot {
+func NewBot(token string, bz *Bugzilla) *Bot {
 	return &Bot{
 		token: token,
+		bz:    bz,
 	}
 }
 
