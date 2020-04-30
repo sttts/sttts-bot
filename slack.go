@@ -1,58 +1,110 @@
 package main
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
 	"strings"
 
-	"github.com/shomali11/slacker"
+	"github.com/gorilla/handlers"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
+	"github.com/spf13/pflag"
 	"k8s.io/klog"
 )
 
-type Bot struct {
-	token string
-	bz    *Bugzilla
+type SlackOptions struct {
+	Token             string
+	ListenAddress     string
+	VerificationToken string
 }
 
-func NewBot(token string, bz *Bugzilla) *Bot {
-	return &Bot{
-		token: token,
-		bz:    bz,
+func AddSlackFlags(opt *SlackOptions) {
+	pflag.StringVar(&opt.ListenAddress, "slack-listen", "0.0.0.0:3000", "Address and port to listen on.")
+
+	opt.Token = os.Getenv("SLACK_BOT_TOKEN")
+	opt.VerificationToken = os.Getenv("SLACK_VERIFICATION_TOKEN")
+}
+
+func ValidateSlack(opt *SlackOptions) error {
+	if len(opt.Token) == 0 {
+		return fmt.Errorf("the environment variable SLACK_BOT_TOKEN must be set")
+	}
+	if len(opt.VerificationToken) == 0 {
+		return fmt.Errorf("the environment variable SLACK_VERIFICATION_TOKEN must be set")
+	}
+
+	return nil
+}
+
+type SlackBot struct {
+	token             string
+	listenAddress     string
+	verificationToken string
+	bz                *Bugzilla
+}
+
+func NewSlackBot(opt SlackOptions, bz *Bugzilla) *SlackBot {
+	return &SlackBot{
+		token:             opt.Token,
+		listenAddress:     opt.ListenAddress,
+		verificationToken: opt.VerificationToken,
+		bz:                bz,
 	}
 }
 
-func (b *Bot) Start() error {
-	slack := slacker.NewClient(b.token)
+func (b *SlackBot) Start() error {
+	client := slack.New(b.token, slack.OptionDebug(true))
 
-	slack.DefaultCommand(func(request slacker.Request, response slacker.ResponseWriter) {
-		response.Reply("unrecognized command, msg me `help` for a list of all commands")
-	})
+	mux := http.NewServeMux()
+	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+		body := buf.String()
+		eventsAPIEvent, e := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionVerifyToken(&slackevents.TokenComparator{VerificationToken: b.verificationToken}))
+		if e != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 
-	slack.Command("say <message>", &slacker.CommandDefinition{
-		Description: "Say something",
-		Example:     "say \"Hello world!\"",
-		Handler: func(request slacker.Request, response slacker.ResponseWriter) {
-			channel := request.Event().Channel
-			if !isDirectMessage(channel) {
-				response.Reply("this command is only accepted via direct message")
-				return
+		switch eventsAPIEvent.Type {
+		case slackevents.URLVerification:
+			var r *slackevents.ChallengeResponse
+			err := json.Unmarshal([]byte(body), &r)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
 			}
+			w.Header().Set("Content-Type", "text")
+			w.Write([]byte(r.Challenge))
 
-			msg := request.StringParam("message", "")
-			response.Reply(msg)
-		},
+		case slackevents.CallbackEvent:
+			innerEvent := eventsAPIEvent.InnerEvent
+			klog.Infof("CallbackEvent: %s", innerEvent.Type)
+			switch ev := innerEvent.Data.(type) {
+			case *slackevents.AppMentionEvent:
+				client.PostMessage(ev.Channel, slack.MsgOptionText("Yes, hello.", false))
+			case *slackevents.MessageEvent:
+				klog.Infof("MessageEvent: %#v", ev)
+				switch {
+				case strings.HasPrefix(ev.Text, "say "):
+					client.PostMessage(ev.Channel, slack.MsgOptionText(ev.Text[4:], false))
+				case strings.HasPrefix(ev.Text, "help"):
+					client.PostMessage(ev.Channel, slack.MsgOptionText("TODO", false))
+				case strings.HasPrefix(ev.Text, "version"):
+					client.PostMessage(ev.Channel, slack.MsgOptionText(fmt.Sprintf("Thanks for asking! I'm running `%s` ( https://github.com/sttts/sttts-bot )", Version), false))
+				case ev.Text == "debug" && ev.ChannelType == "im":
+					client.PostMessage(ev.Channel, slack.MsgOptionText(fmt.Sprintf("%#v", ev), false))
+				default:
+					client.PostMessage(ev.Channel, slack.MsgOptionText("unrecognized command, msg me `help` for a list of all commands", false))
+				}
+			}
+		}
 	})
 
-	slack.Command("version", &slacker.CommandDefinition{
-		Description: "Report the version of the bot",
-		Handler: func(request slacker.Request, response slacker.ResponseWriter) {
-			response.Reply(fmt.Sprintf("Thanks for asking! I'm running `%s` ( https://github.com/sttts/sttts-bot )", Version))
-		},
-	})
-
-	klog.Infof("sttts-bot up and listening to slack")
-	return slack.Listen(context.Background())
+	klog.Infof("sttts-bot up and listening to slack on %s", b.listenAddress)
+	return http.ListenAndServe(b.listenAddress, handlers.LoggingHandler(os.Stdout, mux))
 }
 
 func isRetriable(err error) bool {
@@ -69,8 +121,4 @@ func isRetriable(err error) bool {
 	default:
 		return false
 	}
-}
-
-func isDirectMessage(channel string) bool {
-	return strings.HasPrefix(channel, "D")
 }
