@@ -86,6 +86,11 @@ func (b *SlackBot) Start() error {
 			case *slackevents.AppMentionEvent:
 				client.PostMessage(ev.Channel, slack.MsgOptionText("Yes, hello.", false))
 			case *slackevents.MessageEvent:
+				// ignore my own messages
+				if len(ev.BotID) > 0 {
+					break
+				}
+
 				klog.Infof("MessageEvent: %#v", ev)
 				switch {
 				case strings.HasPrefix(ev.Text, "say "):
