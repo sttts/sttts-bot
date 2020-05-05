@@ -5,10 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mangelajo/track/pkg/bugzilla"
 	"github.com/mangelajo/track/pkg/storecache"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/sttts/sttts-bot/bugzilla"
 )
 
 type BugzillaOptions struct {
@@ -73,7 +74,7 @@ func NewBugzilla(opt BugzillaOptions) (*Bugzilla, error) {
 	url := viper.GetString("bzurl")
 	password := viper.GetString("bzpass")
 	login := viper.GetString("bzemail")
-	client, err := bugzilla.NewClient(url, login, password, storecache.GetBzAuth, storecache.StoreBzAuth)
+	client, err := bugzilla.NewClient(url, login, password)
 	if err != nil {
 		return nil, err
 	}
@@ -85,9 +86,6 @@ func NewBugzilla(opt BugzillaOptions) (*Bugzilla, error) {
 
 func (bz *Bugzilla) Close() {
 	storecache.Close()
-}
-
-func (bz *Bugzilla) RetrieveBlockers() {
 }
 
 func exampleTrackYaml() {

@@ -13,7 +13,7 @@ const (
 
 // A ResponseWriter interface is used to respond to an event
 type ResponseWriter interface {
-	Reply(text string, options ...ReplyOption)
+	Reply(text string, options ...ReplyOption) error
 	ReportError(err error, options ...ReportErrorOption)
 	Client() *slack.Client
 }
@@ -32,7 +32,7 @@ type response struct {
 func (r *response) ReportError(err error, options ...ReportErrorOption) {
 	defaults := newReportErrorDefaults(options...)
 
-	opts :=[]slack.MsgOption{
+	opts := []slack.MsgOption{
 		slack.MsgOptionText(fmt.Sprintf(errorFormat, err.Error()), false),
 	}
 	if defaults.ThreadResponse {
@@ -42,11 +42,11 @@ func (r *response) ReportError(err error, options ...ReportErrorOption) {
 }
 
 // Reply send a attachments to the current channel with a message
-func (r *response) Reply(message string, options ...ReplyOption) {
+func (r *response) Reply(message string, options ...ReplyOption) error {
 	defaults := newReplyDefaults(options...)
 
 	if defaults.ThreadResponse {
-		r.client.PostMessage(
+		_, _, err := r.client.PostMessage(
 			r.event.Channel,
 			slack.MsgOptionText(message, false),
 			slack.MsgOptionAsUser(true),
@@ -54,15 +54,17 @@ func (r *response) Reply(message string, options ...ReplyOption) {
 			slack.MsgOptionBlocks(defaults.Blocks...),
 			slack.MsgOptionTS(r.event.ThreadTimeStamp), // TODO: is this EventTimeStamp?
 		)
-	} else {
-		r.client.PostMessage(
-			r.event.Channel,
-			slack.MsgOptionText(message, false),
-			slack.MsgOptionAsUser(true),
-			slack.MsgOptionAttachments(defaults.Attachments...),
-			slack.MsgOptionBlocks(defaults.Blocks...),
-		)
+		return err
 	}
+
+	_, _, err := r.client.PostMessage(
+		r.event.Channel,
+		slack.MsgOptionText(message, false),
+		slack.MsgOptionAsUser(true),
+		slack.MsgOptionAttachments(defaults.Attachments...),
+		slack.MsgOptionBlocks(defaults.Blocks...),
+	)
+	return err
 }
 
 // Client returns the slack client

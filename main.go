@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
+	slackgo "github.com/slack-go/slack"
 	"github.com/spf13/pflag"
 	"k8s.io/klog"
 
+	"github.com/sttts/sttts-bot/bugzilla"
 	"github.com/sttts/sttts-bot/slacker"
 )
 
@@ -69,9 +71,57 @@ func run() error {
 	})
 	slack.Command("say <message>", &slacker.CommandDefinition{
 		Description: "Say something.",
-		Handler: func(request slacker.Request, response slacker.ResponseWriter) {
-			msg := request.StringParam("message", "")
-			response.Reply(msg)
+		Handler: func(req slacker.Request, w slacker.ResponseWriter) {
+			msg := req.StringParam("message", "")
+			w.Reply(msg)
+		},
+	})
+	slack.Command("bz-stats", &slacker.CommandDefinition{
+		Description: "Show group B Bugzilla statistics.",
+		Handler: func(req slacker.Request, w slacker.ResponseWriter) {
+			urls := map[string]string{
+				"blockers": "cmdtype=dorem&remaction=run&namedcmd=openshift-group-b-blockers&sharer_id=290313",
+				"customer": "cmdtype=dorem&list_id=11029281&namedcmd=openshift-group-b-customer&remaction=run&sharer_id=290313",
+				"priority": "cmdtype=dorem&list_id=11029283&namedcmd=openshift-group-b-prio&remaction=run&sharer_id=290313",
+				"triage":   "cmdtype=dorem&remaction=run&namedcmd=openshift-group-b-triage&sharer_id=290313",
+				"junk":     "cmdtype=dorem&remaction=run&namedcmd=openshift-group-b-junk&sharer_id=290313",
+			}
+			stats := map[string]int{}
+			for k, url := range urls {
+				_, _, _, err := w.Client().SendMessage(req.Event().Channel,
+					slackgo.MsgOptionPostEphemeral(req.Event().User),
+					slackgo.MsgOptionText(fmt.Sprintf("Querying %q...", url), false))
+				if err != nil {
+					klog.Error(err)
+				}
+
+				bugs, err := bz.client.BugList(&bugzilla.BugListQuery{CustomQuery: url})
+				if err != nil {
+					_, _, _, err := w.Client().SendMessage(req.Event().Channel,
+						slackgo.MsgOptionPostEphemeral(req.Event().User),
+						slackgo.MsgOptionText(fmt.Sprintf("failed to query bug list %q: %v", url, err), false))
+					if err != nil {
+						klog.Error(err)
+					}
+					return
+				}
+
+				stats[k] = len(bugs)
+			}
+
+			//msg := request.StringParam("message", "")
+			if err := w.Reply(fmt.Sprintf(`Blockers Bugs Total (https://red.ht/2KJlqiO)
+%d
+Bugs With Customer Case (https://red.ht/2VNOuvQ)
+%d
+Priority Bugs (https://red.ht/2Ym0CWG)
+%d
+Bugs To Triage (https://red.ht/3d0yOLj)
+%d
+Junk Bugs (https://red.ht/2VQ9TEz)
+%d`, stats["blockers"], stats["customer"], stats["priority"], stats["triage"], stats["junk"])); err != nil {
+				klog.Error(err)
+			}
 		},
 	})
 	slack.DefaultCommand(func(req slacker.Request, w slacker.ResponseWriter) {
