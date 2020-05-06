@@ -1,0 +1,63 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: sttts-bot
+spec:
+  replicas: 1
+  selector:
+    deploymentconfig: sttts-bot
+  strategy:
+    resources: {}
+  template:
+    metadata:
+      labels:
+        deploymentconfig: sttts-bot
+        app: sttts-bot
+    spec:
+      containers:
+      - image: sttts-bot:latest
+        name: sttts-bot
+        env:
+        - name: BZURL
+          valueFrom:
+            secretKeyRef:
+              key: bzurl
+              name: bugzilla-credentials
+        - name: BZEMAIL
+          valueFrom:
+            secretKeyRef:
+              key: bzemail
+              name: bugzilla-credentials
+        - name: BZPASS
+          valueFrom:
+            secretKeyRef:
+              key: bzpass
+              name: bugzilla-credentials
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: SLACK_BOT_TOKEN
+              name: slack-token
+        - name: SLACK_VERIFICATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: SLACK_VERIFICATION_TOKEN
+              name: slack-token
+        volumeMounts:
+        - mountPath: "/home"
+          name: home
+      volumes:
+      - name: home
+        persistentVolumeClaim:
+          claimName: sttts-bot-home
+  test: false
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - sttts-bot
+      from:
+        kind: ImageStreamTag
+        name: sttts-bot:latest
+    type: ImageChange

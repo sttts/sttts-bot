@@ -7,5 +7,5 @@ update-deps:
 .PHONY: update-deps
 
 deploy:
-	oc new-app --strategy=docker https://github.com/sttts/sttts-bot.git
+	oc apply -f manifests
 .PHONY: deploy

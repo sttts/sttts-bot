@@ -1,0 +1,38 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  annotations:
+    openshift.io/generated-by: OpenShiftNewApp
+  creationTimestamp: null
+  labels:
+    app: sttts-bot
+    app.kubernetes.io/component: sttts-bot
+    app.kubernetes.io/instance: sttts-bot
+  name: sttts-bot
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: sttts-bot:latest
+  postCommit: {}
+  resources: {}
+  source:
+    git:
+      uri: https://github.com/sttts/sttts-bot.git
+    type: Git
+  strategy:
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: fedora:32
+        namespace: sttts
+    type: Docker
+  triggers:
+  - github:
+      secretReference:
+        name: "github-trigger"
+    type: GitHub
+  - type: ConfigChange
+  - imageChange: {}
+    type: ImageChange
