@@ -8,6 +8,7 @@ import (
 	"github.com/mangelajo/track/pkg/storecache"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"k8s.io/klog"
 
 	"github.com/sttts/sttts-bot/bugzilla"
 )
@@ -50,7 +51,9 @@ func NewBugzilla(opt BugzillaOptions) (*Bugzilla, error) {
 		}
 	}
 
-	storecache.Open(filepath.Join(dir, ".track.db"))
+	storePath := filepath.Join(dir, ".track.db")
+	klog.Infof("Opening %s", storePath)
+	storecache.Open(storePath)
 
 	// load config
 	if opt.TrackConfigPath != "" {
