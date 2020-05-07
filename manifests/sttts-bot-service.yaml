@@ -6,6 +6,7 @@ spec:
   selector:
     app: sttts-bot
   ports:
-  - protocol: TCP
+  - name: http
+    protocol: TCP
     port: 3000
     targetPort: 3000

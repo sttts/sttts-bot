@@ -1,0 +1,15 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: sttts-bot
+spec:
+  host: sttts-bot-sttts.svc.ci.openshift.org
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+  to:
+    kind: Service
+    name: sttts-bot
+    weight: 100
+  wildcardPolicy: None

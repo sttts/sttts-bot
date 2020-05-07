@@ -46,6 +46,8 @@ spec:
         volumeMounts:
         - mountPath: "/home"
           name: home
+      securityContext:
+        fsGroup:
       volumes:
       - name: home
         persistentVolumeClaim:
