@@ -12,13 +12,13 @@ require (
 	github.com/shomali11/commander v0.0.0-20191122162317-51bc574c29ba
 	github.com/shomali11/proper v0.0.0-20190608032528-6e70a05688e7
 	github.com/slack-go/slack v0.6.4
-	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.3
-	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975 // indirect
-	golang.org/x/text v0.3.2 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
+	k8s.io/api v0.18.1
+	k8s.io/apimachinery v0.18.1
+	k8s.io/client-go v0.18.1
 	k8s.io/klog v1.0.0
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace github.com/mangelajo/track v0.0.0 => github.com/sttts/track v0.0.0-20200430132636-a27fbe883173
