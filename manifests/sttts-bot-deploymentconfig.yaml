@@ -26,7 +26,7 @@ spec:
         - name: BUGZILLA_LOGIN
           valueFrom:
             secretKeyRef:
-              key: BZGZILLA_LOGIN
+              key: BUGZILLA_LOGIN
               name: bugzilla-credentials
         - name: BUGZILLA_PASSWORD
           valueFrom:
