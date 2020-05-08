@@ -6,6 +6,6 @@ update-deps:
 	GO111MODULE=on go mod vendor
 .PHONY: update-deps
 
-deploy:
+deploy apply:
 	oc apply -f manifests
 .PHONY: deploy

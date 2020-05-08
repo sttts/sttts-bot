@@ -7,7 +7,7 @@ spec:
   selector:
     deploymentconfig: sttts-bot
   strategy:
-    resources: {}
+    type: Recreate
   template:
     metadata:
       labels:
