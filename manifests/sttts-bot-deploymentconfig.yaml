@@ -18,20 +18,25 @@ spec:
       - image: sttts-bot:latest
         name: sttts-bot
         env:
-        - name: BZURL
+        - name: BUGZILLA_URL
           valueFrom:
             secretKeyRef:
-              key: bzurl
+              key: BUGZILLA_URL
               name: bugzilla-credentials
-        - name: BZEMAIL
+        - name: BUGZILLA_LOGIN
           valueFrom:
             secretKeyRef:
-              key: bzemail
+              key: BZGZILLA_LOGIN
               name: bugzilla-credentials
-        - name: BZPASS
+        - name: BUGZILLA_PASSWORD
           valueFrom:
             secretKeyRef:
-              key: bzpass
+              key: BUGZILLA_PASSWORD
+              name: bugzilla-credentials
+        - name: BUGZILLA_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: BUGZILLA_TOKEN
               name: bugzilla-credentials
         - name: SLACK_BOT_TOKEN
           valueFrom:
