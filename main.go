@@ -23,7 +23,7 @@ const Version = "0.0.1"
 type options struct {
 	GithubEndpoint string
 	Slack          slacker.Options
-	Bugzilla       BugzillaOptions
+	Bugzilla       bugzilla.Options
 }
 
 func Validate(opt *options) error {
@@ -45,7 +45,7 @@ func run() error {
 
 	pflag.StringVar(&opt.GithubEndpoint, "github-endpoint", opt.GithubEndpoint, "An optional proxy for connecting to github.")
 	slacker.AddFlags(&opt.Slack)
-	AddBugzillaFlags(&opt.Bugzilla)
+	bugzilla.AddBugzillaFlags(&opt.Bugzilla)
 	klog.InitFlags(flag.CommandLine)
 	pflag.CommandLine.AddGoFlag(flag.Lookup("v"))
 
@@ -56,7 +56,7 @@ func run() error {
 		os.Exit(2)
 	}
 
-	bz, err := NewBugzilla(opt.Bugzilla)
+	bz, err := bugzilla.NewBugzilla(opt.Bugzilla)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func run() error {
 					klog.Error(err)
 				}
 
-				bugs, err := bz.client.BugList(&bugzilla.BugListQuery{CustomQuery: url})
+				bugs, err := bz.BugList(&bugzilla.BugListQuery{CustomQuery: url})
 				if err != nil {
 					_, _, _, err := w.Client().SendMessage(req.Event().Channel,
 						slackgo.MsgOptionPostEphemeral(req.Event().User),

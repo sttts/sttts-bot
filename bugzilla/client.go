@@ -48,26 +48,28 @@ func newHTTPRequest(method string, urlStr string, body io.Reader) (*http.Request
 
 // Client bugzilla client
 type Client struct {
-	bugzillaAddress  string
-	cgi              *bugzillaCGIClient
-	json             *bugzillaJSONRPCClient
+	bugzillaAddress string
+	cgi             *bugzillaCGIClient
+	json            *bugzillaJSONRPCClient
 }
 
 type GetAuthFunc func() ([]*http.Cookie, *string)
 type StoreAuthFunc func(cookies []*http.Cookie, authToken string)
 
 // NewClient creates bugzilla Client instance
-func NewClient(bugzillaAddress string, bugzillaLogin string, bugzillaPassword string) (client *Client, err error) {
-	fmt.Println("Oh, we don't have an auth token or cookies...")
-	if bugzillaLogin == "" {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Bugzilla Email: ")
-		bugzillaLogin, _ = reader.ReadString('\n')
-	}
-	if bugzillaPassword == "" {
-		fmt.Print("Bugzilla Password: ")
-		pass, _ := gopass.GetPasswdMasked()
-		bugzillaPassword = string(pass)
+func NewClient(bugzillaAddress string, bugzillaLogin string, bugzillaPassword string, bugzillaToken string) (client *Client, err error) {
+	if bugzillaToken == "" {
+		fmt.Println("Oh, we don't have an auth token or cookies...")
+		if bugzillaLogin == "" {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("Bugzilla Email: ")
+			bugzillaLogin, _ = reader.ReadString('\n')
+		}
+		if bugzillaPassword == "" {
+			fmt.Print("Bugzilla Password: ")
+			pass, _ := gopass.GetPasswdMasked()
+			bugzillaPassword = string(pass)
+		}
 	}
 
 	httpClient, err := newHTTPClient()
@@ -78,7 +80,7 @@ func NewClient(bugzillaAddress string, bugzillaLogin string, bugzillaPassword st
 	if err != nil {
 		return nil, err
 	}
-	jsonClient, err := newJSONRPCClient(bugzillaAddress, httpClient, bugzillaLogin, bugzillaPassword)
+	jsonClient, err := newJSONRPCClient(bugzillaAddress, httpClient, bugzillaLogin, bugzillaPassword, bugzillaToken)
 	if err != nil {
 		return nil, err
 	}

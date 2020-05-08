@@ -1,4 +1,4 @@
-package main
+package bugzilla
 
 import (
 	"fmt"
@@ -9,45 +9,46 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"k8s.io/klog"
-
-	"github.com/sttts/sttts-bot/bugzilla"
 )
 
-type BugzillaOptions struct {
+type Options struct {
 	TrackConfigPath   string
 	TrackDatabasePath string
 }
 
-func AddBugzillaFlags(opt *BugzillaOptions) {
+func AddBugzillaFlags(opt *Options) {
 	pflag.StringVar(&opt.TrackConfigPath, "bugzilla-track-config", "", "github.com/mangelajo/track .track config file path")
 	pflag.StringVar(&opt.TrackDatabasePath, "bugzilla-track-database", "", "github.com/mangelajo/track track.db file path")
 	pflag.String("bugzilla-url", "https://bugzilla.redhat.com", "Bugzilla URL")
 	pflag.String("bugzilla-login", "", "Bugzilla login email")
 	pflag.String("bugzilla-password", "", "Bugzilla login password")
+	pflag.String("bugzilla-token", "", "Bugzilla API token, replacing login & password")
 
 	viper.BindPFlag("bzurl", pflag.Lookup("bugzilla-url"))
+	viper.BindEnv("bzurl", "BUGZILLA_URL")
+
 	viper.BindPFlag("bzemail", pflag.Lookup("bugzilla-login"))
+	viper.BindEnv("bzemail", "BUGZILLA_LOGIN")
+
 	viper.BindPFlag("bzpass", pflag.Lookup("bugzilla-password"))
+	viper.BindEnv("bzpass", "BUGZILLA_PASSWORD")
+
+	viper.BindPFlag("bztoken", pflag.Lookup("bugzilla-token"))
+	viper.BindEnv("bztoken", "BUGZILLA_TOKEN")
 }
 
 type Bugzilla struct {
-	client *bugzilla.Client
+	*Client
 }
 
-func NewBugzilla(opt BugzillaOptions) (*Bugzilla, error) {
+func NewBugzilla(opt Options) (*Bugzilla, error) {
 	dir := opt.TrackDatabasePath
 
 	if len(dir) == 0 {
-		dir, err := os.Getwd()
+		var err error
+		dir, err = os.UserHomeDir()
 		if err != nil {
 			return nil, err
-		}
-
-		if _, err := os.Stat(filepath.Join(dir, ".track.db")); err != nil {
-			dir, err = os.UserHomeDir()
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
 
@@ -66,8 +67,6 @@ func NewBugzilla(opt BugzillaOptions) (*Bugzilla, error) {
 		viper.AddConfigPath(homeDir)
 		viper.SetConfigName(".track")
 	}
-	viper.SetEnvPrefix("TRACK")
-	viper.AutomaticEnv() // read in environment variables that match
 	err := viper.ReadInConfig()
 	if err != nil {
 		fmt.Printf("Could not read config file: %s \n", err)
@@ -77,13 +76,14 @@ func NewBugzilla(opt BugzillaOptions) (*Bugzilla, error) {
 	url := viper.GetString("bzurl")
 	password := viper.GetString("bzpass")
 	login := viper.GetString("bzemail")
-	client, err := bugzilla.NewClient(url, login, password)
+	token := viper.GetString("bztoken")
+	client, err := NewClient(url, login, password, token)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Bugzilla{
-		client: client,
+		client,
 	}, nil
 }
 

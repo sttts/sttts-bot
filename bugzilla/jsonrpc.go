@@ -37,11 +37,12 @@ type bugzillaJSONRPCClient struct {
 	seq                             uint64
 	m                               sync.RWMutex
 	bugzillaLogin, bugzillaPassword string
+	bugzillaToken                   string
 	token                           string
 }
 
 // newJSONRPCClient creates a helper json rpc client for regular HTTP based endpoints
-func newJSONRPCClient(addr string, httpClient *http.Client, bugzillaLogin, bugzillaPassword string) (*bugzillaJSONRPCClient, error) {
+func newJSONRPCClient(addr string, httpClient *http.Client, bugzillaLogin, bugzillaPassword, bugzillaToken string) (*bugzillaJSONRPCClient, error) {
 	u, err := url.Parse(addr)
 	if err != nil {
 		return nil, err
@@ -56,6 +57,7 @@ func newJSONRPCClient(addr string, httpClient *http.Client, bugzillaLogin, bugzi
 		m:                sync.RWMutex{},
 		bugzillaLogin:    bugzillaLogin,
 		bugzillaPassword: bugzillaPassword,
+		token:            bugzillaToken,
 	}, nil
 }
 
