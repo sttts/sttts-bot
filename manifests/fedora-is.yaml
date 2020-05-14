@@ -1,0 +1,20 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    app: sttts-bot
+  name: fedora
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+  - annotations:
+      openshift.io/imported-from: fedora:32
+    from:
+      kind: DockerImage
+      name: fedora:32
+    generation: 2
+    importPolicy: {}
+    name: "32"
+    referencePolicy:
+      type: Source
