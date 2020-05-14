@@ -63,11 +63,11 @@ spec:
         persistentVolumeClaim:
           claimName: sttts-bot-home
       - name: podinfo
-          downwardAPI:
-            items:
-            - path: "namespace"
-              fieldRef:
-                fieldPath: metadata.namespace
+        downwardAPI:
+          items:
+          - path: "namespace"
+            fieldRef:
+              fieldPath: metadata.namespace
   test: false
   triggers:
   - type: ConfigChange
